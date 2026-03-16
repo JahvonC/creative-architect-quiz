@@ -1,1 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Creative Architect — Artist Diagnostic</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      background: #0a0a0a;
+      color: #e8e4dc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      padding: 0;
+    }
 
+    .ca-outer {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    .ca-header {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      border-bottom: 0.5px solid #2a2a2a;
+      margin-bottom: 2.5rem;
+    }
+
+    .ca-eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      color: #5a5a5a;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .ca-title {
+      font-size: 28px;
+      font-weight: 500;
+      color: #e8e4dc;
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+    }
+
+    .ca-subtitle {
+      font-size: 14px;
+      color: #4a4a4a;
+      line-height: 1.7;
+      max-width: 380px;
+      margin: 0 auto;
+    }
+
+    .ca-progress-wrap { margin-bottom: 2rem; }
+
+    .ca-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #3a3a3a;
+      margin-bottom: 8px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .ca-progress-bar { height: 1px; background: #1e1e1e; width: 100%; }
+    .ca-progress-fill { height: 1px; background: #8a7a6a; transition: width 0.4s ease; }
+
+    .ca-question {
+      font-size: 18px;
+      font-weight: 500;
+      color: #d8d4cc;
+      line-height: 1.5;
+      margin-bottom: 2rem;
+    }
+
+    .ca-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 2.5rem;
+    }
+
+    .ca-option {
+      background: #111;
+      border: 0.5px solid #222;
+      border-radius: 4px;
+      padding: 14px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #6a6a6a;
+      line-height: 1.5;
+      text-align: left;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .ca-option:hover {
+      border-color: #3a3a3a;
+      color: #9a9a8a;
+      background: #141414;
+    }
+
+    .ca-option.selected {
+      border-color: #6a5a4a;
+      color: #c8c0b0;
+      background: #161410;
+    }
+
+    .ca-option-letter {
+      display: inline-block;
+      width: 20px;
+      font-size: 11px;
+      color: #3a3a3a;
+      margin-right: 8px;
+    }
+
+    .ca-option.selected .ca-option-letter { color: #8a7a6a; }
+
+    .ca-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ca-btn {
+      background: transparent;
+      border: 0.5px solid #2a2a2a;
+      color: #5a5a5a;
+      padding: 10px 28px;
+      font-size: 13px;
+      border-radius: 2px;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: border-color 0.2s, color 0.2s;
+      font-family: inherit;
+    }
+
+    .ca-btn:hover { border-color: #4a4a4a; color: #8a8a7a; }
+    .ca-btn.primary { border-color: #4a3a2a; color: #a08060; }
+    .ca-btn.primary:hover { border-color: #6a5a3a; color: #c0a070; background: #0e0c0a; }
+    .ca-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+    .ca-score-display {
+      font-size: 11px;
+      color: #2a2a2a;
+      letter-spacing: 0.12em;
+    }
+
+    /* Results */
+    .ca-result { text-align: center; padding: 1rem 0 1.5rem; }
+    .ca-result-profile { font-size: 10px; letter-spacing: 0.28em; color: #3a3a3a; text-transform: uppercase; margin-bottom: 1rem; }
+    .ca-result-title { font-size: 28px; font-weight: 500; color: #c8b898; margin-bottom: 0.75rem; line-height: 1.2; }
+    .ca-result-headline { font-size: 14px; color: #5a5a4a; font-style: italic; line-height: 1.7; }
+
+    .ca-divider { height: 0.5px; background: #1a1a1a; margin: 1.75rem 0; }
+
+    .ca-pillars-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 2rem;
+    }
+
+    .ca-pillar-card {
+      background: #0e0e0e;
+      border: 0.5px solid #1e1e1e;
+      border-radius: 4px;
+      padding: 12px 14px;
+    }
+
+    .ca-pillar-card.blocked { border-color: #2a1a0a; }
+    .ca-pillar-card.strength { border-color: #1a2a1a; }
+
+    .ca-pillar-name {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: #4a4a4a;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .ca-pillar-card.blocked .ca-pillar-name { color: #5a3a1a; }
+    .ca-pillar-card.strength .ca-pillar-name { color: #2a4a2a; }
+
+    .ca-pillar-bar-bg { height: 2px; background: #1a1a1a; border-radius: 1px; margin-bottom: 7px; }
+    .ca-pillar-bar-fill { height: 2px; border-radius: 1px; background: #3a3a3a; }
+    .ca-pillar-card.blocked .ca-pillar-bar-fill { background: #6a3a1a; }
+    .ca-pillar-card.strength .ca-pillar-bar-fill { background: #3a6a3a; }
+
+    .ca-pillar-pct { font-size: 12px; color: #5a5a4a; }
+    .ca-pillar-card.blocked .ca-pillar-pct { color: #6a3a1a; }
+    .ca-pillar-card.strength .ca-pillar-pct { color: #3a6a3a; }
+
+    .ca-result-body {
+      font-size: 14px;
+      color: #4a4a3a;
+      line-height: 1.85;
+      margin-bottom: 1.5rem;
+    }
+
+    .ca-result-body p { margin-bottom: 0.875rem; }
+
+    .ca-cta {
+      background: #0e0c0a;
+      border: 0.5px solid #4a3a2a;
+      border-radius: 4px;
+      padding: 22px;
+      margin-top: 1.5rem;
+    }
+
+    .ca-cta-label {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: #4a3a2a;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .ca-cta-title {
+      font-size: 17px;
+      color: #a08060;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .ca-cta-desc {
+      font-size: 13px;
+      color: #3a3a2a;
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+
+    .ca-cta-price {
+      font-size: 14px;
+      color: #6a5a3a;
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+
+    .ca-action-btns { display: flex; flex-direction: column; gap: 8px; }
+
+    .ca-pay-btn {
+      background: #0e0c0a;
+      border: 0.5px solid #6a5a3a;
+      color: #c0a070;
+      padding: 13px 20px;
+      font-size: 13px;
+      border-radius: 2px;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: all 0.2s;
+      width: 100%;
+      text-align: center;
+      font-family: inherit;
+      text-decoration: none;
+      display: block;
+    }
+
+    .ca-pay-btn:hover { background: #141008; border-color: #8a7a4a; color: #d4b880; }
+
+    .ca-sec-btn {
+      background: transparent;
+      border: 0.5px solid #2a2a1a;
+      color: #5a5a3a;
+      padding: 11px 20px;
+      font-size: 12px;
+      border-radius: 2px;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: all 0.2s;
+      width: 100%;
+      text-align: center;
+      font-family: inherit;
+      text-decoration: none;
+      display: block;
+    }
+
+    .ca-sec-btn:hover { border-color: #3a3a2a; color: #7a7a5a; }
+
+    .ca-tally-btn {
+      background: transparent;
+      border: 0.5px solid #1a2a2a;
+      color: #3a6a6a;
+      padding: 11px 20px;
+      font-size: 12px;
+      border-radius: 2px;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: all 0.2s;
+      width: 100%;
+      text-align: center;
+      font-family: inherit;
+      text-decoration: none;
+      display: block;
+    }
+
+    .ca-tally-btn:hover { border-color: #2a4a4a; color: #5a8a8a; background: #080e0e; }
+
+    .ca-note {
+      font-size: 11px;
+      color: #2a2a1a;
+      text-align: center;
+      margin-top: 12px;
+      line-height: 1.6;
+      letter-spacing: 0.05em;
+    }
+
+    .ca-restart {
+      margin-top: 2rem;
+      font-size: 12px;
+      color: #2a2a2a;
+      cursor: pointer;
+      letter-spacing: 0.12em;
+      text-align: center;
+      transition: color 0.2s;
+      user-select: none;
+    }
+
+    .ca-restart:hover { color: #4a4a3a; }
+
+    .ca-footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 0.5px solid #151515;
+      font-size: 11px;
+      color: #252520;
+      letter-spacing: 0.12em;
+    }
+
+    @media (max-width: 480px) {
+      .ca-title { font-size: 22px; }
+      .ca-question { font-size: 16px; }
+      .ca-pillars-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="ca-outer">
+  <div id="app"></div>
+  <div class="ca-footer">The Creative Architect &mdash; jreamverse.online</div>
+</div>
+
+<script>
+  const TALLY_URL = 'https://tally.so/r/Np0Xzj';
+  const GUMROAD = {
+    seeker:    'https://jahvoncapel.gumroad.com/l/sfgpp',
+    rebuilder: 'https://jahvoncapel.gumroad.com/l/bukrrm',
+    refiner:   'https://jahvoncapel.gumroad.com/l/qzdenz'
+  };
+
+  const questions = [
+    { pillar:"Identity", pillarIdx:0, text:"When you create, are you making what you actually want to make?", options:["Always — my work is a direct reflection of who I am","Most of the time but I second guess myself","I usually adjust my sound based on what I think people want","Honestly I'm not sure what my sound even is right now"] },
+    { pillar:"Identity", pillarIdx:0, text:"Can you describe your artistic identity without hesitation?", options:["Yes — I know exactly who I am as an artist","I have a general idea but it shifts depending on the day","I struggle to put it into words consistently","I've never really sat down and defined it"] },
+    { pillar:"Identity", pillarIdx:0, text:"Have you ever released something that didn't fully represent you?", options:["Never — I only release what feels authentic","Once or twice but I learned from it","More times than I'd like to admit","Most of what I've released doesn't feel like the real me"] },
+    { pillar:"Clarity", pillarIdx:1, text:"How often do you finish what you start in the studio?", options:["Almost always — I have a system that keeps me focused","Sometimes — depends on my mood and energy","Rarely — I start a lot but finish very little","I can't remember the last time I completed something"] },
+    { pillar:"Clarity", pillarIdx:1, text:"Do you have more unreleased music than released work?", options:["No — I release consistently and my catalog reflects my output","A little backlog but nothing overwhelming","Yes — my hard drive is a graveyard of unfinished ideas","I have years worth of music nobody has ever heard"] },
+    { pillar:"Clarity", pillarIdx:1, text:"When you sit down to create do you feel focused or scattered?", options:["Focused — I know what I'm going in to create","It depends on the day but I can usually find my groove","Scattered most of the time — I jump between too many ideas","I avoid the studio because I don't know where to start"] },
+    { pillar:"Clarity", pillarIdx:1, text:"Has overthinking ever stopped you from releasing something?", options:["No — I trust my work and put it out","Occasionally but I push through it","Yes — I've held back a lot waiting for it to be perfect","Perfectionism has basically paralyzed my output"] },
+    { pillar:"Integrity", pillarIdx:2, text:"What drives most of your creative decisions?", options:["My own internal vision regardless of outside noise","Mostly my vision but I keep an eye on what's working","I spend a lot of time studying trends and adjusting accordingly","I'm mostly trying to make what I think will get the most attention"] },
+    { pillar:"Integrity", pillarIdx:2, text:"How do you measure your progress as an artist?", options:["By the quality and authenticity of my work and skill growth","A mix of personal satisfaction and external feedback","Mainly by streams, likes, and how people respond","I feel like I'm not progressing at all right now"] },
+    { pillar:"Integrity", pillarIdx:2, text:"When your work doesn't get the reaction you expected how do you respond?", options:["I stay the course — I know validation doesn't define my value","It stings but I refocus on the work itself","It makes me want to change my approach entirely","It stops my momentum completely"] },
+    { pillar:"Vision", pillarIdx:3, text:"How do you feel about your creative instincts?", options:["I trust them completely — they've never steered me wrong","I trust them mostly but outside opinions shake me sometimes","I second guess my instincts more often than I follow them","I don't even know what my instincts are telling me anymore"] },
+    { pillar:"Vision", pillarIdx:3, text:"Do you have a clear picture of where your artistry is going?", options:["Yes — I have a defined vision and I'm executing toward it","I have a general direction but the details are fuzzy","I have ideas but no real clarity on how they connect","I have no vision right now and that's part of the problem"] },
+    { pillar:"Vision", pillarIdx:3, text:"When someone challenges your creative direction how do you respond?", options:["I hear them out but ultimately trust my own vision","I consider their input and take what's useful","I usually end up adjusting based on their feedback","Outside opinions tend to derail me completely"] },
+    { pillar:"Discipline", pillarIdx:4, text:"How consistent is your creative output?", options:["Very consistent — I create on a schedule regardless of how I feel","Fairly consistent but life gets in the way sometimes","Inconsistent — I create in bursts then go quiet for weeks","I haven't been creating consistently in a long time"] },
+    { pillar:"Discipline", pillarIdx:4, text:"When life gets busy what's the first thing that gets dropped?", options:["Nothing — I protect my creative time no matter what","I scale back but I never stop completely","My creative work is usually the first thing to go","When things get hard I shut down creatively entirely"] },
+    { pillar:"Discipline", pillarIdx:4, text:"Do you have systems in place to support your creative consistency?", options:["Yes — I have routines, schedules, and accountability structures","Some loose systems but nothing airtight","Not really — I rely mostly on inspiration and motivation","No systems at all — I'm completely reactive"] },
+    { pillar:"Brand", pillarIdx:5, text:"How clearly does your brand reflect who you are as an artist?", options:["Completely — my visuals, message, and music all tell the same story","Mostly aligned but some areas need work","My brand feels scattered and inconsistent","I don't really have a defined brand right now"] },
+    { pillar:"Brand", pillarIdx:5, text:"If someone discovered you today could they immediately understand what you're about?", options:["Yes — my brand communicates my identity instantly","Probably — with a little digging they'd get it","It would take some explaining","Honestly no — my message isn't clear even to me"] },
+    { pillar:"Brand", pillarIdx:5, text:"How cohesive is your presence across platforms?", options:["Very cohesive — everything looks and feels like the same artist","Mostly cohesive with a few inconsistencies","Pretty scattered — my platforms don't really connect","I barely have a presence to speak of right now"] }
+  ];
+
+  const pillarNames = ["Identity","Clarity","Integrity","Vision","Discipline","Brand"];
+  const pillarMax   = [12, 16, 12, 12, 12, 12];
+
+  const profiles = {
+    seeker: {
+      name: "The Seeker",
+      headline: "Before the strategy comes the foundation.",
+      body: "You're not lacking talent. You're lacking a clear sense of who you are as an artist and why you create. Right now everything feels scattered because you're building on an unstable foundation. The music, the brand, the direction — none of it can stick until you know who you actually are.\n\nYour most critical areas are Identity and Vision. Everything else flows from these two. Until they're solid, discipline and brand work will feel forced and temporary.\n\nYou showed up and took this assessment. That awareness is the first act of courage most artists never take.",
+      offer: "Foundation Clarity Session",
+      offerDesc: "A personalized 30-minute recorded deep dive into your identity and vision blocks. Includes a written summary of your priority focus areas.",
+      price: "$97",
+      cta: "Book your Foundation Clarity Session"
+    },
+    rebuilder: {
+      name: "The Rebuilder",
+      headline: "You haven't lost it. You just need to find it again.",
+      body: "You've done this before. You know what it feels like to be locked in creatively and moving with purpose. But somewhere along the way the noise got loud — outside opinions, life pressure, comparison, burnout — and you drifted.\n\nThe good news is nothing has to be rebuilt from scratch. It just needs to be excavated. Your Clarity and Discipline scores are your priority focus.\n\nYour Integrity score shows you haven't compromised your standards even while you've been stuck. That's your foundation to rebuild from.",
+      offer: "Creative Strategy Session",
+      offerDesc: "Submit your music and intake form. Receive a 30-minute recorded deep dive with a written 30-day action plan and one follow-up email.",
+      price: "$197",
+      cta: "Book your Creative Strategy Session"
+    },
+    refiner: {
+      name: "The Refiner",
+      headline: "You're closer than you think. Now let's sharpen the edge.",
+      body: "You're operating from a place of genuine self-awareness and creative integrity. Your fundamentals are strong — you know who you are, you trust your vision, and you show up consistently.\n\nWhat's holding you back now isn't a block. It's a gap between where your work is and how it's being perceived. The music is there. The brand and message need to catch up.\n\nYour Vision and Discipline scores are your superpower. You have the rare combination of creative conviction and consistent work ethic. Now let's make sure the world can actually see it.",
+      offer: "Creative Brand Audit",
+      offerDesc: "Submit your full brand — music, visuals, bio, social. Receive a comprehensive 30-minute audit video with a written brand alignment report and two follow-up emails.",
+      price: "$297",
+      cta: "Book your Creative Brand Audit"
+    }
+  };
+
+  let current = 0;
+  let answers = new Array(questions.length).fill(null);
+
+  function getPillarScores() {
+    let s = [0,0,0,0,0,0];
+    answers.forEach((a,i) => { if (a !== null) s[questions[i].pillarIdx] += (4 - a); });
+    return s;
+  }
+
+  function getTotalScore() {
+    return answers.reduce((sum, a) => sum + (a !== null ? (4 - a) : 0), 0);
+  }
+
+  function getProfileKey(t) { return t >= 49 ? 'refiner' : t >= 29 ? 'rebuilder' : 'seeker'; }
+
+  function getPillarPct(i) {
+    const s = getPillarScores();
+    return Math.round((s[i] / pillarMax[i]) * 100);
+  }
+
+  function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+    const total = getTotalScore();
+    const pk = getProfileKey(total);
+    const profile = profiles[pk];
+    const pcts = pillarNames.map((_, i) => getPillarPct(i));
+    const maxP = Math.max(...pcts);
+    const minP = Math.min(...pcts);
+    const W = 612, m = 50; let y = 0;
+
+    doc.setFillColor(10,10,10); doc.rect(0,0,W,792,'F');
+    doc.setFillColor(20,16,10); doc.rect(0,0,W,120,'F');
+    doc.setFontSize(9); doc.setTextColor(90,80,60); doc.setFont('helvetica','normal');
+    doc.text('THE CREATIVE ARCHITECT', m, 45);
+    doc.setFontSize(22); doc.setTextColor(200,184,152);
+    doc.text('Artist Diagnostic Report', m, 75);
+    doc.setFontSize(10); doc.setTextColor(60,50,35);
+    doc.text(new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}), m, 100);
+
+    y = 145;
+    doc.setDrawColor(30,25,15); doc.setLineWidth(0.5); doc.line(m,y,W-m,y); y+=25;
+    doc.setFontSize(9); doc.setTextColor(60,50,35); doc.text('YOUR PROFILE', m, y); y+=18;
+    doc.setFontSize(20); doc.setTextColor(200,175,130); doc.text(profile.name, m, y); y+=14;
+    doc.setFontSize(12); doc.setTextColor(80,72,55); doc.setFont('helvetica','italic');
+    doc.text('"' + profile.headline + '"', m, y); doc.setFont('helvetica','normal'); y+=30;
+    doc.setFontSize(9); doc.setTextColor(60,50,35);
+    doc.text('OVERALL SCORE', m, y); doc.text(total + ' / 76', W-m, y, {align:'right'}); y+=25;
+    doc.line(m,y,W-m,y); y+=22;
+    doc.setFontSize(9); doc.setTextColor(60,50,35); doc.text('PILLAR BREAKDOWN', m, y); y+=18;
+
+    const colW = (W - m*2 - 12) / 2;
+    pillarNames.forEach((name, i) => {
+      const col = i % 2; const x = m + col*(colW+12);
+      if (col === 0 && i > 0) y += 42;
+      const pct = pcts[i]; const isB = pct===minP; const isS = pct===maxP;
+      doc.setFillColor(18,15,10); doc.roundedRect(x, y-12, colW, 36, 2, 2, 'F');
+      doc.setFontSize(8);
+      if (isB) doc.setTextColor(120,70,30); else if (isS) doc.setTextColor(50,100,50); else doc.setTextColor(60,55,45);
+      doc.text(name.toUpperCase(), x+10, y+2);
+      doc.setFillColor(25,20,15); doc.roundedRect(x+10, y+8, colW-20, 2, 1,1,'F');
+      const bW = Math.round(((colW-20)*pct)/100);
+      if (isB) doc.setFillColor(100,55,20); else if (isS) doc.setFillColor(45,90,45); else doc.setFillColor(55,50,40);
+      if (bW > 0) doc.roundedRect(x+10, y+8, bW, 2, 1,1,'F');
+      doc.setFontSize(9);
+      if (isB) doc.setTextColor(100,55,20); else if (isS) doc.setTextColor(45,90,45); else doc.setTextColor(55,50,40);
+      doc.text(pct+'%', x+colW-10, y+2, {align:'right'});
+    });
+
+    y += 55; doc.line(m,y,W-m,y); y+=22;
+    doc.setFontSize(9); doc.setTextColor(60,50,35); doc.text('ASSESSMENT', m, y); y+=16;
+    doc.setFontSize(11); doc.setTextColor(110,100,80);
+    profile.body.split('\n\n').forEach(para => {
+      doc.splitTextToSize(para, W-m*2).forEach(line => {
+        if (y > 730) { doc.addPage(); doc.setFillColor(10,10,10); doc.rect(0,0,W,792,'F'); y=50; }
+        doc.text(line, m, y); y+=16;
+      }); y+=8;
+    });
+
+    doc.setFillColor(14,12,10); doc.setDrawColor(80,60,35); doc.setLineWidth(0.5);
+    doc.roundedRect(m, y, W-m*2, 115, 3, 3, 'FD'); y+=18;
+    doc.setFontSize(8); doc.setTextColor(70,55,30); doc.text('YOUR NEXT STEP', m+16, y); y+=14;
+    doc.setFontSize(13); doc.setTextColor(170,135,90); doc.text(profile.offer, m+16, y); y+=14;
+    doc.setFontSize(10); doc.setTextColor(80,65,40);
+    doc.splitTextToSize(profile.offerDesc, W-m*2-32).forEach(line => { doc.text(line, m+16, y); y+=14; });
+    doc.setFontSize(12); doc.setTextColor(130,100,55); doc.text(profile.price, m+16, y+8);
+    doc.setFontSize(8); doc.setTextColor(35,30,20);
+    doc.text('The Creative Architect — jreamverse.online', W/2, 775, {align:'center'});
+    doc.save('creative-architect-results.pdf');
+  }
+
+  function render() {
+    const app = document.getElementById('app');
+    if (current === -1) { renderResult(app); return; }
+    const q = questions[current];
+    const letters = ['A','B','C','D'];
+    const answered = answers.filter(a => a !== null).length;
+    const pct = Math.round((answered / questions.length) * 100);
+
+    app.innerHTML = `
+      <div class="ca-header">
+        <div class="ca-eyebrow">The Creative Architect</div>
+        <div class="ca-title">Artist Diagnostic</div>
+        <div class="ca-subtitle">Answer honestly. This assessment only works if you do.</div>
+      </div>
+      <div class="ca-progress-wrap">
+        <div class="ca-progress-label">
+          <span>${q.pillar.toUpperCase()}</span>
+          <span>${answered} of ${questions.length}</span>
+        </div>
+        <div class="ca-progress-bar"><div class="ca-progress-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="ca-question">${q.text}</div>
+      <div class="ca-options">
+        ${q.options.map((opt, i) => `
+          <button class="ca-option${answers[current]===i?' selected':''}" onclick="selectAnswer(${i})">
+            <span class="ca-option-letter">${letters[i]}</span>${opt}
+          </button>`).join('')}
+      </div>
+      <div class="ca-nav">
+        <button class="ca-btn" onclick="goBack()" ${current===0?'disabled':''}>Back</button>
+        <span class="ca-score-display">${current+1} / ${questions.length}</span>
+        <button class="ca-btn primary" onclick="goNext()" ${answers[current]===null?'disabled':''}>${current===questions.length-1?'See results':'Next'}</button>
+      </div>`;
+  }
+
+  function renderResult(app) {
+    const total = getTotalScore();
+    const pk = getProfileKey(total);
+    const profile = profiles[pk];
+    const pcts = pillarNames.map((_, i) => getPillarPct(i));
+    const maxP = Math.max(...pcts);
+    const minP = Math.min(...pcts);
+
+    const pillarsHTML = pillarNames.map((name, i) => {
+      const pct = pcts[i];
+      const cls = pct===minP ? 'blocked' : pct===maxP ? 'strength' : '';
+      return `<div class="ca-pillar-card ${cls}">
+        <div class="ca-pillar-name">${name}</div>
+        <div class="ca-pillar-bar-bg"><div class="ca-pillar-bar-fill" style="width:${pct}%"></div></div>
+        <div class="ca-pillar-pct">${pct}%</div>
+      </div>`;
+    }).join('');
+
+    const bodyHTML = profile.body.split('\n\n').filter(Boolean).map(p => `<p>${p}</p>`).join('');
+
+    app.innerHTML = `
+      <div class="ca-header">
+        <div class="ca-eyebrow">The Creative Architect</div>
+        <div class="ca-title">Your Results</div>
+      </div>
+      <div class="ca-result">
+        <div class="ca-result-profile">Your profile</div>
+        <div class="ca-result-title">${profile.name}</div>
+        <div class="ca-result-headline">"${profile.headline}"</div>
+      </div>
+      <div class="ca-pillars-grid">${pillarsHTML}</div>
+      <div class="ca-divider"></div>
+      <div class="ca-result-body">${bodyHTML}</div>
+      <div class="ca-cta">
+        <div class="ca-cta-label">Your next step</div>
+        <div class="ca-cta-title">${profile.offer}</div>
+        <div class="ca-cta-desc">${profile.offerDesc}</div>
+        <div class="ca-cta-price">${profile.price}</div>
+        <div class="ca-action-btns">
+          <a class="ca-pay-btn" href="${GUMROAD[pk]}" target="_blank" rel="noopener">${profile.cta} →</a>
+          <button class="ca-sec-btn" onclick="generatePDF()">Download results as PDF</button>
+          <a class="ca-tally-btn" href="${TALLY_URL}" target="_blank" rel="noopener">Submit intake form to Jahvon →</a>
+        </div>
+        <div class="ca-note">Complete your intake form after payment. Session delivered within 48 hours.</div>
+      </div>
+      <div class="ca-restart" onclick="restart()">— retake assessment —</div>`;
+  }
+
+  function selectAnswer(i) { answers[current] = i; render(); }
+  function goNext() {
+    if (answers[current] === null) return;
+    current = current === questions.length - 1 ? -1 : current + 1;
+    render();
+  }
+  function goBack() { if (current > 0) { current--; render(); } }
+  function restart() { current = 0; answers = new Array(questions.length).fill(null); render(); }
+
+  render();
+</script>
+</body>
+</html>
